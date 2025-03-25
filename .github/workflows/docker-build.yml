@@ -25,4 +25,4 @@ jobs:
       - name: Build and Push Docker Image
         run: |
           docker build -t ghcr.io/pradeep-jatav/bhai-node-app:latest .
-          docker push ghcr.io/pradeep-jatav/node-app:latest
+          docker push ghcr.io/pradeep-jatav/bhai-node-app:latest
