@@ -1,12 +1,13 @@
-name: Build and Push Node.js Docker Image
+name: Build and Push to ECR and GHCR
 
 on:
   push:
     branches:
       - main
+
 permissions:
-  packages: write  # Package push ke liye
-  contents: read   # Code read ke liye
+  id-token: write  # OIDC token ke liye
+  contents: read
 
 jobs:
   build-and-push:
@@ -15,17 +16,35 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::605134474431:role/GitHubActionRole
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Login to GHCR
+      - name: Build and Push to ECR
+        run: |
+          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          docker build -t $ECR_REGISTRY/bhai-node-app:latest .
+          docker push $ECR_REGISTRY/bhai-node-app:latest
+          echo "ECR Image: $ECR_REGISTRY/bhai-node-app:latest"
+
+      - name: Login to GHCR (Manual Credentials)
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_PAT }}  # GHCR ke liye PAT chahiye
 
-      - name: Build and Push Docker Image
+      - name: Build and Push to GHCR
         run: |
           docker build -t ghcr.io/pradeep-jatav/bhai-node-app:latest .
           docker push ghcr.io/pradeep-jatav/bhai-node-app:latest
+          echo "GHCR Image: ghcr.io/pradeep-jatav/bhai-node-app:latest"
